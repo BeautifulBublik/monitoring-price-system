@@ -1,0 +1,68 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: pricemonitor-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pricemonitor}
+      POSTGRES_USER: ${POSTGRES_USER:-pricemonitor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pricemonitor}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pricemonitor} -d ${POSTGRES_DB:-pricemonitor}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  selenium:
+    image: selenium/standalone-chromium:latest
+    container_name: pricemonitor-selenium
+    shm_size: 2gb
+    ports:
+      - "${SELENIUM_PORT:-4444}:4444"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4444/wd/hub/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pricemonitor-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      selenium:
+        condition: service_started
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-pricemonitor}
+      DB_USERNAME: ${POSTGRES_USER:-pricemonitor}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-pricemonitor}
+      JWT_SECRET: ${JWT_SECRET}
+
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+      SCHEDULER_CRON: ${SCHEDULER_CRON:-0 0 * * * *}
+      HISTORY_STORE_MODE: ${HISTORY_STORE_MODE:-ON_CHANGE}
+
+      SELENIUM_ENABLED: ${SELENIUM_ENABLED:-true}
+      SELENIUM_REMOTE_URL: http://selenium:4444/wd/hub
+
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@pricemonitor.local}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

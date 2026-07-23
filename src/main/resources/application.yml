@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: monitoring-system
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pricemonitor}
+    username: ${DB_USERNAME:pricemonitor}
+    password: ${DB_PASSWORD:pricemonitor}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:true}
+          starttls:
+            enable: ${SMTP_STARTTLS:true}
+        connectiontimeout: 5000
+        timeout: 5000
+        writetimeout: 5000
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+logging:
+  level:
+    dev.beautifulbublik.monitoringsystem: INFO
+
+price-monitor:
+
+  jwt:
+    # Required. At least 32 bytes. The application will not start without it — deliberately:
+    # a default secret in production is more dangerous than refusing to start.
+    secret: ${JWT_SECRET:your_super_secret_key_2024_secure_application_key_123}
+    expiration: 24h
+
+  scheduler:
+    enabled: ${SCHEDULER_ENABLED:true}
+    # By default — every hour at :00. Format — Spring cron (6 fields).
+    cron: ${SCHEDULER_CRON:0 0 0 0 * *}
+    zone: UTC
+
+  history:
+    store-mode: ${HISTORY_STORE_MODE:ON_CHANGE}
+
+  parsing:
+    timeout: 10s
+    min-interval-per-domain: 5s
+    rate-limit-max-wait: 30s
+    default-currency: UAH
+    user-agents:
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+      - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+      - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+
+  selenium:
+    enabled: ${SELENIUM_ENABLED:true}
+    remote-url: ${SELENIUM_REMOTE_URL:}
+    page-load-timeout: 20s
+    explicit-wait: 10s
+
+  telegram:
+    enabled: ${TELEGRAM_ENABLED:false}
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
+    api-url: https://api.telegram.org
+    polling-enabled: ${TELEGRAM_POLLING_ENABLED:true}
+
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@pricemonitor.local}
+
+  default-rule:
+    price-selector: "[itemprop=price]"
+    title-selector: "h1"
+    currency-selector: "[itemprop=priceCurrency]"
+    currency: UAH
+    render-mode: AUTO
